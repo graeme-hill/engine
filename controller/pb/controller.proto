@@ -147,7 +147,8 @@ message Game {
   string Mode = 8;
   int32 MaxTurnsToNextFoodSpawn = 9;
   int32 TurnsSinceLastFoodSpawn = 10;
-};
+  string TickInterceptURL = 11;
+}
 
 message GameFrame {
   int32 Turn = 1;

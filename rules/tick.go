@@ -76,6 +76,12 @@ func GameTick(game *pb.Game, lastFrame *pb.GameFrame) (*pb.GameFrame, error) {
 			du.Snake.Death = du.Death
 		}
 	}
+
+	// If using a tick intercept plugin then let it intercept now
+	if game.TickInterceptURL != "" {
+		return plugin.UpdateState(game.TickInterceptURL, game, lastFrame, nextFrame)
+	}
+
 	return nextFrame, nil
 }
 
