@@ -1,9 +1,11 @@
 package plugin
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/battlesnakeio/engine/controller/pb"
 	"net/http"
+	"time"
 )
 
 var HTTPClient = &http.Client{Timeout: 10 * time.Second}
@@ -26,7 +28,7 @@ func UpdateState(url string, game *pb.Game, lastFrame *pb.GameFrame, nextFrame *
 	}
 
 	var response *TickInterceptResponse
-	err := postJSON(url, jsonReq, response)
+	err = postJSON(url, jsonReq, response)
 	if err != nil {
 		return nil, err
 	}
@@ -34,12 +36,12 @@ func UpdateState(url string, game *pb.Game, lastFrame *pb.GameFrame, nextFrame *
 	return response.ModifiedFrame, nil
 }
 
-func postJSON(url string, jsonReq string, target interface{}) error {
-	resp, err := HTTPClient.Post(url, "application/json", bytes.NewBufer(jsonReq))
+func postJSON(url string, jsonReq []byte, target interface{}) error {
+	resp, err := HTTPClient.Post(url, "application/json", bytes.NewBuffer(jsonReq))
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	return json.NewDecoder(r.Body).Decode(target)
+	return json.NewDecoder(resp.Body).Decode(target)
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/battlesnakeio/engine/controller/pb"
+	"github.com/battlesnakeio/engine/plugin"
 	log "github.com/sirupsen/logrus"
 )
 
