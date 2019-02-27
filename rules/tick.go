@@ -3,11 +3,61 @@ package rules
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/battlesnakeio/engine/controller/pb"
 	log "github.com/sirupsen/logrus"
 )
+
+func makeSnake(pos *pb.Point) *pb.Snake {
+	return &pb.Snake{
+		ID:     "~~ Level 1 ~~",
+		Name:   "~~ Level 1 ~~",
+		Body:   []*pb.Point{pos, pos, pos},
+		URL:    "http://localhost:5000",
+		Health: 100,
+		Color:  "#ff00bb",
+	}
+}
+
+func spawn(pos *pb.Point, f *pb.GameFrame) {
+	snake := makeSnake(pos)
+	f.Snakes = append(f.Snakes, snake)
+}
+
+func findSpawnPoint(f *pb.GameFrame) *pb.Point {
+	return &pb.Point{X: 0, Y: 0}
+}
+
+func isHero(s *pb.Snake) bool {
+	return !strings.HasPrefix(s.Name, "~~ Level")
+}
+
+func levelComplete(f *pb.GameFrame) bool {
+	alive := f.AliveSnakes()
+	return len(alive) == 1 && isHero(alive[0])
+}
+
+func startNextLevel(f *pb.GameFrame) {
+	pos := findSpawnPoint(f)
+	spawn(pos, f)
+	wipeDeadSnakes(f)
+}
+
+func wipeDeadSnakes(f *pb.GameFrame) {
+	alive := []*pb.Snake{}
+	for _, s := range f.AliveSnakes() {
+		alive = append(alive, s)
+	}
+	f.Snakes = alive
+}
+
+func updateCampaign(f *pb.GameFrame) {
+	if levelComplete(f) {
+		startNextLevel(f)
+	}
+}
 
 // GameTick runs the game one tick and updates the state
 func GameTick(game *pb.Game, lastFrame *pb.GameFrame) (*pb.GameFrame, error) {
@@ -70,6 +120,8 @@ func GameTick(game *pb.Game, lastFrame *pb.GameFrame) (*pb.GameFrame, error) {
 		return nil, err
 	}
 	nextFrame.Food = nextFood
+
+	updateCampaign(nextFrame)
 	return nextFrame, nil
 }
 
