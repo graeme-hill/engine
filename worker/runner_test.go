@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
+	"os"
+
 	"github.com/battlesnakeio/engine/controller/pb"
 	"github.com/battlesnakeio/engine/rules"
 	"github.com/davecgh/go-spew/spew"
@@ -18,7 +21,11 @@ var snakeURL string
 
 func init() {
 	tst := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"move": "up"}`))
+		_, err := w.Write([]byte(`{"move": "up"}`))
+		if err != nil {
+			fmt.Println("unable to write bytes", err)
+			os.Exit(1)
+		}
 	}))
 	snakeURL = tst.URL
 }
@@ -44,27 +51,31 @@ func TestWorker_RunnerErrors(t *testing.T) {
 	})
 
 	t.Run("GameFrameError", func(t *testing.T) {
-		store.CreateGame(ctx, &pb.Game{ID: "1", Status: string(rules.GameStatusRunning)}, nil)
+		err := store.CreateGame(ctx, &pb.Game{ID: "1", Status: string(rules.GameStatusRunning)}, nil)
+		require.NoError(t, err)
 
-		err := w.run(ctx, 1)
+		err = w.run(ctx, 1)
 		require.NotNil(t, err)
 		require.Equal(t, "rules: invalid state, previous frame is nil", err.Error())
 	})
 
 	t.Run("GameFrameLocked", func(t *testing.T) {
-		store.CreateGame(ctx,
+		err := store.CreateGame(ctx,
 			&pb.Game{ID: "2", Status: string(rules.GameStatusRunning)},
 			[]*pb.GameFrame{{}},
 		)
+		require.NoError(t, err)
 		w.RunGame = func(c context.Context, cl pb.ControllerClient, id string) error {
 			md, _ := metadata.FromOutgoingContext(c)
-			store.Unlock(c, id, md[pb.TokenKey][0])
-			store.Lock(c, id, "")
+			err = store.Unlock(c, id, md[pb.TokenKey][0])
+			require.NoError(t, err)
+			_, err = store.Lock(c, id, "")
+			require.NoError(t, err)
 
 			return Runner(c, cl, id)
 		}
 
-		err := w.run(ctx, 1)
+		err = w.run(ctx, 1)
 		require.NotNil(t, err)
 		require.Equal(t,
 			"rpc error: code = ResourceExhausted desc = controller: game is locked",

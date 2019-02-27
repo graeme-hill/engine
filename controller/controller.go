@@ -12,12 +12,19 @@ import (
 	"github.com/battlesnakeio/engine/controller/pb"
 	"github.com/battlesnakeio/engine/rules"
 	"github.com/battlesnakeio/engine/version"
+	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	promgrpc "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func init() {
+	// Enable histogram metrics, they are good.
+	promgrpc.EnableHandlingTimeHistogram()
+}
 
 // MaxTicks is the maximum amount of ticks that can be returned.
 const MaxTicks = 100
@@ -47,9 +54,10 @@ func (s *Server) ValidateSnake(ctx context.Context, req *pb.ValidateSnakeRequest
 	}
 	gameID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	validateSnakeResponse := &pb.ValidateSnakeResponse{
-		StartStatus: rules.ValidateStart(gameID, url),
-		MoveStatus:  rules.ValidateMove(gameID, url),
-		EndStatus:   rules.ValidateEnd(gameID, url),
+		StartStatus: rules.ValidateStart(gameID, url, rules.SlowSnakeMS),
+		MoveStatus:  rules.ValidateMove(gameID, url, rules.SlowSnakeMS),
+		EndStatus:   rules.ValidateEnd(gameID, url, rules.SlowSnakeMS),
+		PingStatus:  rules.ValidatePing("nogame", url, rules.SlowSnakeMS),
 	}
 	return validateSnakeResponse, nil
 }
@@ -194,7 +202,12 @@ func (s *Server) Serve(listen string) error {
 		return err
 	}
 	s.port = lis.Addr().(*net.TCPAddr).Port
-	srv := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor))
+	srv := grpc.NewServer(grpc.UnaryInterceptor(
+		grpcmiddleware.ChainUnaryServer(
+			loggingInterceptor,
+			promgrpc.UnaryServerInterceptor,
+		),
+	))
 	pb.RegisterControllerServer(srv, s)
 	close(s.started)
 	return srv.Serve(lis)

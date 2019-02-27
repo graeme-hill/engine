@@ -4,13 +4,35 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/battlesnakeio/engine/controller/pb"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
+
+var (
+	snakeRequestsHistogramMetric = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "engine",
+			Subsystem: "worker",
+			Name:      "snake_requests_duration",
+			Help:      "Calls to outbound snakes.",
+		},
+		[]string{"method", "code", "official"},
+	)
+)
+
+func init() { prometheus.MustRegister(snakeRequestsHistogramMetric) }
+
+// Official snake url is set for tracking purposes. If requests are failing to
+// this snake then things are going wrong!
+var officialSnakeURL = os.Getenv("OFFICIAL_SNAKE_URL")
 
 type snakeResponse struct {
 	snake *pb.Snake
@@ -80,6 +102,7 @@ func gatherSnakeResponses(multiReq multiSnakeRequest, snakes []*pb.Snake) []snak
 }
 
 func postToSnakeServer(req snakePostRequest, resp chan<- snakeResponse) {
+	done := instrumentSnakeCall(req.options.url, req.options.snake.URL == officialSnakeURL)
 	buf := bytes.NewBuffer(req.data)
 	netClient := createClient(req.options.timeout)
 	postURL := getURL(req.options.snake.URL, req.options.url)
@@ -93,10 +116,20 @@ func postToSnakeServer(req snakePostRequest, resp chan<- snakeResponse) {
 			snake: req.options.snake,
 			err:   err,
 		}
+		done(0)
 		return
 	}
 
-	responseData, err := ioutil.ReadAll(postResponse.Body)
+	defer func() {
+		if bErr := postResponse.Body.Close(); bErr != nil {
+			log.WithError(bErr).Warn("failed to close response body")
+		}
+	}()
+	done(postResponse.StatusCode)
+
+	// Limited read to 1mb of data.
+	responseData, err := ioutil.ReadAll(io.LimitReader(postResponse.Body, 1000000))
+
 	resp <- snakeResponse{
 		snake: req.options.snake,
 		data:  responseData,
@@ -122,4 +155,25 @@ func getSnakeResponse(options snakePostOptions, game *pb.Game, frame *pb.GameFra
 		options: options,
 		data:    data,
 	}, resp)
+}
+
+func instrumentSnakeCall(method string, official bool) func(int) {
+	start := time.Now()
+	return func(code int) {
+		var status string
+		if code >= 200 {
+			status = "2xx"
+		} else if code >= 300 {
+			status = "3xx"
+		} else if code >= 400 {
+			status = "4xx"
+		} else if code >= 500 {
+			status = "5xx"
+		} else {
+			status = "err"
+		}
+		snakeRequestsHistogramMetric.WithLabelValues(method, status, fmt.Sprint(official)).Observe(
+			time.Since(start).Seconds(),
+		)
+	}
 }

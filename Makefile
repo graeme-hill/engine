@@ -20,7 +20,7 @@ test-e2e: install
 .PHONY: test-e2e
 
 lint:
-	gometalinter --config ./.gometalinter.json ./...
+	golangci-lint run
 .PHONY: lint
 
 proto:
@@ -31,3 +31,10 @@ proto:
 build-docker:
 	docker build -t battlesnakeio/engine .
 .PHONY: build-docker
+
+start-pg:
+	docker run -d -p 5433:5432 --rm --name=battlesnake-pg -e POSTGRES_PASSWORD= postgres
+.PHONY: start-pg
+
+stop-pg:
+	docker stop battlesnake-pg

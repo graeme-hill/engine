@@ -9,3 +9,8 @@ make proto
 
 Make sure to update the Open API specs here: https://github.com/battlesnakeio/docs/blob/master/apis/engine/spec
 
+Run the tests
+
+```bash
+make test
+```

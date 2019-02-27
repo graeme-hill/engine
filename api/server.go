@@ -84,7 +84,7 @@ func framesSocket(w http.ResponseWriter, r *http.Request, ps httprouter.Params, 
 		}
 	}()
 	frames := make(chan *pb.GameFrame)
-	go gatherFrames(frames, c, id)
+	go gatherFrames(r.Context(), frames, c, id)
 	for frame := range frames {
 		m := jsonpb.Marshaler{EmitDefaults: true}
 
@@ -108,10 +108,10 @@ func framesSocket(w http.ResponseWriter, r *http.Request, ps httprouter.Params, 
 	}
 }
 
-func gatherFrames(frames chan<- *pb.GameFrame, c pb.ControllerClient, id string) {
+func gatherFrames(ctx context.Context, frames chan<- *pb.GameFrame, c pb.ControllerClient, id string) {
 	offset := int32(0)
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		resp, err := c.ListGameFrames(ctx, &pb.ListGameFramesRequest{
 			ID:     id,
 			Offset: offset,
@@ -123,6 +123,9 @@ func gatherFrames(frames chan<- *pb.GameFrame, c pb.ControllerClient, id string)
 		}
 
 		for _, f := range resp.Frames {
+			for _, s := range f.Snakes {
+				s.URL = ""
+			}
 			frames <- f
 		}
 
@@ -181,14 +184,8 @@ func createGame(w http.ResponseWriter, r *http.Request, _ httprouter.Params, c p
 		return
 	}
 
-	j, err := json.Marshal(resp)
-	if err != nil {
-		writeError(w, err, http.StatusInternalServerError, "Error serializing to JSON", log.Fields{
-			"resp": resp,
-		})
-		return
-	}
-	_, err = w.Write(j)
+	m := jsonpb.Marshaler{EmitDefaults: true}
+	err = m.Marshal(w, resp)
 	if err != nil {
 		log.WithError(err).Error("Unable to write response to stream")
 	}
@@ -230,14 +227,14 @@ func getStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params, c p
 		return
 	}
 
-	j, err := json.Marshal(resp)
-	if err != nil {
-		writeError(w, err, http.StatusInternalServerError, "Error serializing response to JSON", log.Fields{
-			"resp": resp,
-		})
-		return
+	if resp.LastFrame != nil {
+		for _, s := range resp.LastFrame.Snakes {
+			s.URL = ""
+		}
 	}
-	_, err = w.Write(j)
+
+	m := jsonpb.Marshaler{EmitDefaults: true}
+	err = m.Marshal(w, resp)
 	if err != nil {
 		log.WithError(err).Error("Unable to write response to stream")
 	}
@@ -262,6 +259,12 @@ func getFrames(w http.ResponseWriter, r *http.Request, ps httprouter.Params, c p
 			"resp": resp,
 		})
 		return
+	}
+
+	for _, f := range resp.Frames {
+		for _, s := range f.Snakes {
+			s.URL = ""
+		}
 	}
 
 	m := jsonpb.Marshaler{EmitDefaults: true}

@@ -63,3 +63,10 @@ func (s *Snake) Head() *Point {
 	}
 	return s.Body[0]
 }
+
+func (s *Snake) Tail() *Point {
+	if len(s.Body) == 0 {
+		return nil
+	}
+	return s.Body[len(s.Body)-1]
+}

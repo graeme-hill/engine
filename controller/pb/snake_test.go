@@ -94,3 +94,14 @@ func TestSnake_DefaultMove(t *testing.T) {
 		require.Equal(t, test.Expected, s.Head())
 	}
 }
+
+func TestSnake_Tail(t *testing.T) {
+	s := &Snake{
+		Body: []*Point{
+			{X: 5, Y: 5},
+			{X: 4, Y: 5},
+		},
+	}
+
+	require.Equal(t, &Point{X: 4, Y: 5}, s.Tail())
+}

@@ -124,6 +124,18 @@ Flags:
 Use "engine [command] --help" for more information about a command.
 ```
 
+## Running the engine in dev mode
+
+Dev mode means that the engine will run a simple browser application that you can connect to your snake.
+
+```bash
+./engine dev
+```
+
+Open a browser and go to <a href="http://localhost:3010/">http://localhost:3010/</a>
+
+This will give you a web based environment to test the engine & the snake locally before you put it on the Internet.
+
 ## Backend configuration
 
 Storage options:
@@ -139,7 +151,7 @@ Storage options:
 Save games as files in `~/battlesnake/`
 
 ```shell
-engine all --backend file --backend-args ~/battlesnake
+engine server --backend file --backend-args ~/battlesnake
 ```
 
 #### Redis
@@ -147,11 +159,11 @@ engine all --backend file --backend-args ~/battlesnake
 Save games as keys in redis
 
 ```shell
-engine all --backend redis --backend-args 'redis://localhost:6379'
+engine server --backend redis --backend-args 'redis://localhost:6379'
 ```
 
 ---
 
 ## Battlesnake API
 
-Refer to the [docs](https://github.com/battlesnakeio/docs) repository, specifically the [snake API](https://github.com/battlesnakeio/docs/blob/master/apis/snake/spec.yaml) which can viewed with [Swagger's editor](https://swagger.io/swagger-editor/)
+Refer to the docs [repository](https://github.com/battlesnakeio/docs) or [website](http://docs.battlesnake.io), specifically the [snake API](http://docs.battlesnake.io/snake-api.html).

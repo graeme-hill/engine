@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/battlesnakeio/engine/controller/pb"
 	log "github.com/sirupsen/logrus"
@@ -59,7 +60,7 @@ func getStatus(id string) *pb.StatusResponse {
 		log.WithFields(log.Fields{
 			"resp": string(data),
 			"id":   id,
-		}).Infof("unable to unmarshal status response", string(data))
+		}).Infof("unable to unmarshal status response: %s", string(data))
 		return nil
 	}
 

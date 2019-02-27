@@ -45,7 +45,7 @@ func getSnakeAfterStart(t *testing.T, json string, statusCode int) *pb.Snake {
 		URL: "http://good-server",
 	}
 
-	NotifyGameStart(&pb.Game{}, &pb.GameFrame{
+	notifyGameStart(&pb.Game{}, &pb.GameFrame{
 		Snakes: []*pb.Snake{snake},
 	})
 
@@ -63,7 +63,7 @@ func getSnakeAfterMissingServer(t *testing.T) *pb.Snake {
 		URL: "http://dead-server",
 	}
 
-	NotifyGameStart(&pb.Game{}, &pb.GameFrame{
+	notifyGameStart(&pb.Game{}, &pb.GameFrame{
 		Snakes: []*pb.Snake{snake},
 	})
 

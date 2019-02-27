@@ -2,61 +2,16 @@ package rules
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/battlesnakeio/engine/controller/pb"
 	log "github.com/sirupsen/logrus"
 )
 
-func makeSnake(pos *pb.Point) *pb.Snake {
-	return &pb.Snake{
-		ID:     "~~ Level 1 ~~",
-		Name:   "~~ Level 1 ~~",
-		Body:   []*pb.Point{pos, pos, pos},
-		URL:    "http://localhost:5000",
-		Health: 100,
-		Color:  "#ff00bb",
-	}
-}
-
-func spawn(pos *pb.Point, f *pb.GameFrame) {
-	snake := makeSnake(pos)
-	f.Snakes = append(f.Snakes, snake)
-}
-
-func findSpawnPoint(f *pb.GameFrame) *pb.Point {
-	return &pb.Point{X: 0, Y: 0}
-}
-
-func isHero(s *pb.Snake) bool {
-	return !strings.HasPrefix(s.Name, "~~ Level")
-}
-
-func levelComplete(f *pb.GameFrame) bool {
-	alive := f.AliveSnakes()
-	return len(alive) == 1 && isHero(alive[0])
-}
-
-func startNextLevel(f *pb.GameFrame) {
-	pos := findSpawnPoint(f)
-	spawn(pos, f)
-	wipeDeadSnakes(f)
-}
-
-func wipeDeadSnakes(f *pb.GameFrame) {
-	alive := []*pb.Snake{}
-	for _, s := range f.AliveSnakes() {
-		alive = append(alive, s)
-	}
-	f.Snakes = alive
-}
-
-func updateCampaign(f *pb.GameFrame) {
-	if levelComplete(f) {
-		startNextLevel(f)
-	}
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 // GameTick runs the game one tick and updates the state
@@ -80,25 +35,11 @@ func GameTick(game *pb.Game, lastFrame *pb.GameFrame) (*pb.GameFrame, error) {
 	// we have all the snake moves now
 	// 1. update snake coords
 	updateSnakes(game, nextFrame, moves)
-	// 2. check for death
-	// 	  a - starvation
-	//    b - wall collision
-	//    c - snake collision
-	log.WithFields(log.Fields{
-		"GameID": game.ID,
-		"Turn":   nextFrame.Turn,
-	}).Info("check for death")
-	deathUpdates := checkForDeath(game.Width, game.Height, nextFrame)
-	for _, du := range deathUpdates {
-		if du.Snake.Death == nil {
-			du.Snake.Death = du.Death
-		}
-	}
-	// 3. game update
+	// 2. game update
 	//    a - turn incr -- done above when the next tick is created
 	//    b - reduce health points
 	//    c - grow snakes, and update snake health if they ate
-	//    d - shrink snakes that didn't et
+	//    d - shrink snakes that didn't eat
 	//    e - remove eaten food
 	//    f - replace eaten food
 	log.WithFields(log.Fields{
@@ -115,18 +56,33 @@ func GameTick(game *pb.Game, lastFrame *pb.GameFrame) (*pb.GameFrame, error) {
 	}).Info("handle food")
 
 	foodToRemove := checkForSnakesEating(nextFrame)
-	nextFood, err := updateFood(game.Width, game.Height, lastFrame, foodToRemove)
+	nextFood, err := updateFood(game, lastFrame, foodToRemove)
 	if err != nil {
 		return nil, err
 	}
 	nextFrame.Food = nextFood
 
-	updateCampaign(nextFrame)
+	// 3. check for death
+	// 	  a - starvation
+	//    b - wall collision
+	//    c - snake collision
+	log.WithFields(log.Fields{
+		"GameID": game.ID,
+		"Turn":   nextFrame.Turn,
+	}).Info("check for death")
+	deathUpdates := checkForDeath(game.Width, game.Height, nextFrame)
+	for _, du := range deathUpdates {
+		if du.Snake.Death == nil {
+			du.Snake.Death = du.Death
+		}
+	}
+	updateCampaign(nextFrame, game)
 	return nextFrame, nil
 }
 
-func updateFood(width, height int32, gameFrame *pb.GameFrame, foodToRemove []*pb.Point) ([]*pb.Point, error) {
-	food := []*pb.Point{}
+func updateFood(game *pb.Game, gameFrame *pb.GameFrame, foodToRemove []*pb.Point) ([]*pb.Point, error) {
+	var food []*pb.Point
+	// discover what food was not eaten
 	for _, foodPos := range gameFrame.Food {
 		found := false
 		for _, r := range foodToRemove {
@@ -141,19 +97,86 @@ func updateFood(width, height int32, gameFrame *pb.GameFrame, foodToRemove []*pb
 		}
 	}
 
-	for range foodToRemove {
-		p := getUnoccupiedPoint(width, height, gameFrame.Food, gameFrame.AliveSnakes())
-		if p != nil {
-			food = append(food, p)
+	foodToAdd := 0
+	if game.MaxTurnsToNextFoodSpawn <= 0 {
+		foodToAdd = len(foodToRemove)
+	} else {
+		if game.TurnsSinceLastFoodSpawn == game.MaxTurnsToNextFoodSpawn {
+			foodToAdd = int(math.Ceil(float64(len(gameFrame.AliveSnakes())) / 2.0))
+		} else {
+			chance := rand.Int31n(1001) // use 101 here so we get 0-100 inclusive
+			calculatedChance := calculateFoodSpawnChance(game)
+			log.WithFields(log.Fields{
+				"GameID":            game.ID,
+				"Food Spawn Chance": chance,
+				"Turns Since Last":  game.TurnsSinceLastFoodSpawn,
+				"Calculate Chance":  calculatedChance,
+			}).Info("food spawn chance")
+			fmt.Println(len(gameFrame.AliveSnakes()))
+			if float64(chance) <= calculatedChance {
+				foodToAdd = int(math.Ceil(float64(len(gameFrame.AliveSnakes())) / 2.0))
+
+			}
 		}
+	}
+
+	if foodToAdd > 0 {
+		game.TurnsSinceLastFoodSpawn = 0
+		for i := 0; i < foodToAdd; i++ {
+			p := getUnoccupiedPoint(game.Width, game.Height, gameFrame.Food, gameFrame.AliveSnakes())
+			if p != nil {
+				food = append(food, p)
+			}
+		}
+	} else {
+		game.TurnsSinceLastFoodSpawn++
 	}
 
 	return food, nil
 }
 
+func calculateFoodSpawnChance(game *pb.Game) float64 {
+	minSpawnChance := float64(0.5)
+
+	ratio := math.Pow(1000/minSpawnChance, 1.0/float64(game.MaxTurnsToNextFoodSpawn-1))
+	seqNum := float64(game.TurnsSinceLastFoodSpawn)
+
+	spawnChance := minSpawnChance * ((1 - math.Pow(ratio, seqNum)) / (1 - ratio))
+	return spawnChance
+}
+
 func getUnoccupiedPoint(width, height int32, food []*pb.Point, snakes []*pb.Snake) *pb.Point {
 	openPoints := getUnoccupiedPoints(width, height, food, snakes)
+	return pickRandomPoint(openPoints)
+}
 
+func getUnoccupiedPointOdd(width, height int32, food []*pb.Point, snakes []*pb.Snake) *pb.Point {
+	openPoints := getUnoccupiedPoints(width, height, food, snakes)
+	openPoints = filterPoints(openPoints, true)
+	return pickRandomPoint(openPoints)
+}
+
+func getUnoccupiedPointEven(width, height int32, food []*pb.Point, snakes []*pb.Snake) *pb.Point {
+	openPoints := getUnoccupiedPoints(width, height, food, snakes)
+	openPoints = filterPoints(openPoints, false)
+	return pickRandomPoint(openPoints)
+}
+
+func filterPoints(openPoints []*pb.Point, even bool) []*pb.Point {
+	filteredPoints := []*pb.Point{}
+	mod := int32(0)
+	if !even {
+		mod = int32(1)
+	}
+	for i := int32(0); i < int32(len(openPoints)); i++ {
+		if (openPoints[i].X+openPoints[i].Y)%2 != mod {
+			filteredPoints = append(filteredPoints, openPoints[i])
+		}
+	}
+	return filteredPoints
+}
+
+func pickRandomPoint(openPoints []*pb.Point) *pb.Point {
 	if len(openPoints) == 0 {
 		return nil
 	}
@@ -167,6 +190,9 @@ func getUnoccupiedPoints(width, height int32, food []*pb.Point, snakes []*pb.Sna
 	occupiedPoints := getUniqOccupiedPoints(food, snakes)
 
 	numCandidatePoints := (width * height) - int32(len(occupiedPoints))
+	if numCandidatePoints <= 0 {
+		return []*pb.Point{}
+	}
 
 	candidatePoints := make([]*pb.Point, 0, numCandidatePoints)
 
@@ -229,6 +255,7 @@ func updateSnakes(game *pb.Game, frame *pb.GameFrame, moves []*SnakeUpdate) {
 		if update.Err != nil {
 			log.WithFields(log.Fields{
 				"GameID":  game.ID,
+				"Error":   update.Err,
 				"SnakeID": update.Snake.ID,
 				"Name":    update.Snake.Name,
 				"Turn":    frame.Turn,
@@ -256,13 +283,24 @@ func checkForSnakesEating(frame *pb.GameFrame) []*pb.Point {
 				snake.Health = 100
 				ate = true
 				foodToRemove = append(foodToRemove, foodPos)
+				log.WithFields(log.Fields{
+					"SnakeID": snake.ID,
+					"Name":    snake.Name,
+					"Turn":    frame.Turn,
+					"Food":    foodPos,
+				}).Info("snake ate")
 			}
 		}
-		if !ate {
-			if len(snake.Body) == 0 {
-				continue
-			}
+
+		// It's possible here to have 2 points at the tail, and so if we remove the second one, it
+		// looks like the snake hasn't moved.
+		// This shouldn't happen, but just in case
+		if len(snake.Body) != 0 {
 			snake.Body = snake.Body[:len(snake.Body)-1]
+		}
+		if ate {
+			tail := snake.Tail()
+			snake.Body = append(snake.Body, &pb.Point{X: tail.X, Y: tail.Y})
 		}
 	}
 	return foodToRemove

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/battlesnakeio/engine/rules"
 	"github.com/battlesnakeio/engine/version"
 	"github.com/stretchr/testify/require"
-	"strings"
 )
 
 var client pb.ControllerClient
@@ -31,6 +31,27 @@ func init() {
 	}
 }
 
+func TestController_GameSnakeTimeouts(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("GetGame_SnakeTimeoutSet", func(t *testing.T) {
+		resp, _ := client.Create(ctx, &pb.CreateRequest{SnakeTimeout: 250})
+		game, _ := client.Status(ctx, &pb.StatusRequest{ID: resp.ID})
+		require.Equal(t, int32(250), game.Game.SnakeTimeout)
+	})
+
+	t.Run("GetGame_SnakeTimeoutSet0", func(t *testing.T) {
+		resp, _ := client.Create(ctx, &pb.CreateRequest{SnakeTimeout: 0})
+		game, _ := client.Status(ctx, &pb.StatusRequest{ID: resp.ID})
+		require.Equal(t, int32(500), game.Game.SnakeTimeout)
+	})
+
+	t.Run("GetGame_SnakeTimeoutSet6000", func(t *testing.T) {
+		resp, _ := client.Create(ctx, &pb.CreateRequest{SnakeTimeout: 6000})
+		game, _ := client.Status(ctx, &pb.StatusRequest{ID: resp.ID})
+		require.Equal(t, int32(500), game.Game.SnakeTimeout)
+	})
+}
 func TestController_GameCRUD(t *testing.T) {
 	ctx := context.Background()
 
@@ -77,7 +98,7 @@ func TestController_GameCRUD(t *testing.T) {
 		game, err := client.Status(ctx, &pb.StatusRequest{ID: gameID})
 		require.Nil(t, err)
 		require.Equal(t, "running", game.Game.Status)
-		require.Equal(t, int64(1000), game.Game.SnakeTimeout)
+		require.Equal(t, int32(500), game.Game.SnakeTimeout)
 		require.Equal(t, "multi-player", game.Game.Mode)
 		require.NotNil(t, game.LastFrame)
 		require.Equal(t, int32(0), game.LastFrame.Turn)

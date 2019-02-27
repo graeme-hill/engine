@@ -103,11 +103,13 @@ func TestWorker_Run(t *testing.T) {
 			}
 			// Unlock the given game.
 			md, _ := metadata.FromOutgoingContext(c)
-			store.Unlock(c, id, md[pb.TokenKey][0])
+			err := store.Unlock(c, id, md[pb.TokenKey][0])
+			require.NoError(t, err)
 			// Lock the game
-			client.Pop(ctx, &pb.PopRequest{})
+			_, err = client.Pop(ctx, &pb.PopRequest{})
+			require.NoError(t, err)
 			// Push game frame.
-			_, err := cl.AddGameFrame(c, &pb.AddGameFrameRequest{
+			_, err = cl.AddGameFrame(c, &pb.AddGameFrameRequest{
 				ID:        id,
 				GameFrame: &pb.GameFrame{},
 			})
@@ -143,8 +145,10 @@ func TestWorker_RunLoop(t *testing.T) {
 		},
 	}
 
-	resp, _ := client.Create(context.Background(), &pb.CreateRequest{})
-	client.Start(context.Background(), &pb.StartRequest{ID: resp.ID})
+	resp, err := client.Create(context.Background(), &pb.CreateRequest{})
+	require.NoError(t, err)
+	_, err = client.Start(context.Background(), &pb.StartRequest{ID: resp.ID})
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
@@ -167,7 +171,8 @@ func TestWorker_RunLoopError(t *testing.T) {
 	}
 
 	resp, _ := client.Create(context.Background(), &pb.CreateRequest{})
-	client.Start(context.Background(), &pb.StartRequest{ID: resp.ID})
+	_, err := client.Start(context.Background(), &pb.StartRequest{ID: resp.ID})
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 	defer cancel()

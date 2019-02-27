@@ -3,10 +3,12 @@ env:
   - CC_TEST_REPORTER_ID=7270ff0025c47f5c76e29b2e422f2c99615339a5abcfe0d31074b7818edf4054
 language: go
 go:
-- 1.10.2
+- 1.11
 go_import_path: github.com/battlesnakeio/engine
 services:
 - docker
+before_install:
+- nvm install 9
 stages:
 - lint
 - test
@@ -16,15 +18,14 @@ jobs:
   include:
   - stage: lint
     script:
-    - go get -u github.com/alecthomas/gometalinter
-    - gometalinter --install
+    - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s -- -b $GOPATH/bin v1.10.2
     - make lint
   - stage: test
     script:
-    - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
-      > ./cc-test-reporter
+    - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
     - chmod +x ./cc-test-reporter
     - "./cc-test-reporter before-build"
+    - docker run -d -p 5433:5432 --rm -e POSTGRES_PASSWORD= postgres
     - docker run -d --name=battlesnake-redis --rm -t -p 6379:6379 redis
     - REDIS_URL=redis://127.0.0.1:6379 make test
     - cp coverage.txt c.out

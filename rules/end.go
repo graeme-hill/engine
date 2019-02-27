@@ -24,9 +24,14 @@ func NotifyGameEnd(game *pb.Game, frame *pb.GameFrame) {
 		}
 
 		buf := bytes.NewBuffer(data)
-		_, err = netClient.Post(getURL(s.URL, "end"), "application/json", buf)
+		r, err := netClient.Post(getURL(s.URL, "end"), "application/json", buf)
 		if err != nil {
 			log.WithError(err).WithField("snakeID", s.ID).Error("error POSTing to /end")
+		}
+		if r != nil {
+			if err = r.Body.Close(); err != nil {
+				log.WithError(err).Warn("failed to close response body")
+			}
 		}
 	}
 }

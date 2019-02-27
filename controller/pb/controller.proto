@@ -67,6 +67,7 @@ message ValidateSnakeResponse {
    SnakeResponseStatus StartStatus = 1;
    SnakeResponseStatus MoveStatus = 2;
    SnakeResponseStatus EndStatus = 3;
+   SnakeResponseStatus PingStatus = 4;
 }
 message SnakeResponseStatus {
   string Message = 1;
@@ -100,6 +101,8 @@ message CreateRequest  {
   int32 Height = 2;
   int32 Food = 3;
   repeated SnakeOptions Snakes = 4;
+  int32 MaxTurnsToNextFoodSpawn = 5;
+  int32 SnakeTimeout = 6;
 }
 message CreateResponse {
   string ID = 1;
@@ -131,6 +134,8 @@ message SnakeOptions {
   string Name = 1;
   string URL = 2;
   string ID = 3;
+  string HeadType = 4;
+  string TailType = 5;
 }
 
 message Game {
@@ -138,9 +143,10 @@ message Game {
   string Status = 2;
   int32 Width = 3;
   int32 Height = 4;
-  int64 SnakeTimeout = 6; // number of milliseconds for snake api calls
-  int64 TurnTimeout = 7; // number of milliseconds for turn delay
+  int32 SnakeTimeout = 6; // number of milliseconds for snake api calls
   string Mode = 8;
+  int32 MaxTurnsToNextFoodSpawn = 9;
+  int32 TurnsSinceLastFoodSpawn = 10;
 };
 
 message GameFrame {
@@ -162,6 +168,8 @@ message Snake {
   int32 Health = 5;
   Death Death = 6;
   string Color = 7;
+  string HeadType = 8;
+  string TailType = 9;
 }
 
 message Death {

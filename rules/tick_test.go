@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"math/rand"
 	"testing"
 
 	"github.com/battlesnakeio/engine/controller/pb"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestUpdateFood(t *testing.T) {
-	updated, err := updateFood(20, 20, &pb.GameFrame{
+	updated, err := updateFood(&pb.Game{Width: 20, Height: 20}, &pb.GameFrame{
 		Food: []*pb.Point{
 			{X: 1, Y: 1},
 			{X: 1, Y: 2},
@@ -36,7 +37,7 @@ func TestUpdateFood(t *testing.T) {
 }
 
 func TestUpdateFoodWithFullBoard(t *testing.T) {
-	updated, err := updateFood(2, 2, &pb.GameFrame{
+	updated, err := updateFood(&pb.Game{Width: 2, Height: 2}, &pb.GameFrame{
 		Food: []*pb.Point{
 			{X: 0, Y: 0},
 		},
@@ -55,6 +56,21 @@ func TestUpdateFoodWithFullBoard(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, updated, 0)
+}
+
+func TestGetUnoccupiedPointEven(t *testing.T) {
+
+	unoccupiedPoint := getUnoccupiedPointEven(2, 2,
+		[]*pb.Point{},
+		[]*pb.Snake{})
+	require.True(t, (unoccupiedPoint.X+unoccupiedPoint.Y)%2 == 0, "Point coordinates should sum to an even number %o ", unoccupiedPoint)
+}
+
+func TestGetUnoccupiedPointOdd(t *testing.T) {
+	unoccupiedPoint := getUnoccupiedPointOdd(2, 2,
+		[]*pb.Point{{X: 0, Y: 1}},
+		[]*pb.Snake{})
+	require.True(t, (unoccupiedPoint.X+unoccupiedPoint.Y)%2 == 1, "Point coordinates should sum to an odd number %o ", unoccupiedPoint)
 }
 
 func TestGetUnoccupiedPointWithFullBoard(t *testing.T) {
@@ -205,9 +221,9 @@ func TestGameTickUpdatesDeath(t *testing.T) {
 	snake := &pb.Snake{
 		Health: 0,
 		Body: []*pb.Point{
-			{X: 1, Y: 1},
-			{X: 1, Y: 2},
-			{X: 1, Y: 3},
+			{X: 3, Y: 1},
+			{X: 3, Y: 2},
+			{X: 3, Y: 3},
 		},
 	}
 
@@ -225,7 +241,7 @@ func TestUpdateSnakes(t *testing.T) {
 		},
 	}
 	moves := []*SnakeUpdate{
-		&SnakeUpdate{
+		{
 			Snake: snake,
 			Err:   errors.New("some error"),
 		},
@@ -236,7 +252,7 @@ func TestUpdateSnakes(t *testing.T) {
 	require.Equal(t, &pb.Point{X: 1, Y: 0}, snake.Head(), "snake did not move up")
 
 	moves = []*SnakeUpdate{
-		&SnakeUpdate{
+		{
 			Snake: snake,
 			Move:  "left",
 		},
@@ -245,4 +261,85 @@ func TestUpdateSnakes(t *testing.T) {
 		Snakes: []*pb.Snake{snake},
 	}, moves)
 	require.Equal(t, &pb.Point{X: 0, Y: 0}, snake.Head(), "snake did not move left")
+}
+
+func TestCanFollowTail(t *testing.T) {
+	url := setupSnakeServer(t, MoveResponse{
+		Move: "down",
+	}, StartResponse{})
+	snake := &pb.Snake{
+		Body: []*pb.Point{
+			{X: 2, Y: 1},
+			{X: 1, Y: 1},
+			{X: 1, Y: 2},
+			{X: 2, Y: 2},
+		},
+		URL:    url,
+		Health: 100,
+	}
+	next, err := GameTick(&pb.Game{
+		Width:  20,
+		Height: 20,
+	}, &pb.GameFrame{
+		Snakes: []*pb.Snake{snake},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, next)
+	require.Nil(t, next.Snakes[0].Death)
+}
+
+func TestNextFoodSpawn(t *testing.T) {
+	rand.Seed(1) // random order is 65, 85, 29
+	snakes := []*pb.Snake{
+		{URL: setupSnakeServer(t, MoveResponse{}, StartResponse{})},
+		{URL: setupSnakeServer(t, MoveResponse{}, StartResponse{})},
+		{URL: setupSnakeServer(t, MoveResponse{}, StartResponse{})},
+		{URL: setupSnakeServer(t, MoveResponse{}, StartResponse{})},
+	}
+	next, err := GameTick(&pb.Game{
+		Width:                   20,
+		Height:                  20,
+		TurnsSinceLastFoodSpawn: 5,
+		MaxTurnsToNextFoodSpawn: 5,
+	}, &pb.GameFrame{
+		Snakes: snakes,
+	})
+	require.NoError(t, err)
+	require.Len(t, next.Food, 2)
+}
+
+func TestCheckForSnakesEating(t *testing.T) {
+	snake := &pb.Snake{
+		Body: []*pb.Point{
+			{X: 2, Y: 1},
+			{X: 1, Y: 1},
+			{X: 1, Y: 2},
+			{X: 2, Y: 2},
+		},
+	}
+	checkForSnakesEating(&pb.GameFrame{
+		Food: []*pb.Point{
+			{X: 2, Y: 1},
+		},
+		Snakes: []*pb.Snake{snake},
+	})
+	require.Len(t, snake.Body, 4)
+	require.Equal(t, snake.Body[2], snake.Body[3])
+}
+
+func TestCheckForSnakesNotEating(t *testing.T) {
+	snake := &pb.Snake{
+		Body: []*pb.Point{
+			{X: 2, Y: 1},
+			{X: 1, Y: 1},
+			{X: 1, Y: 2},
+			{X: 2, Y: 2},
+		},
+	}
+	checkForSnakesEating(&pb.GameFrame{
+		Food:   []*pb.Point{},
+		Snakes: []*pb.Snake{snake},
+	})
+	require.Len(t, snake.Body, 3)
+	require.NotEqual(t, snake.Body[2], snake.Body[1])
 }

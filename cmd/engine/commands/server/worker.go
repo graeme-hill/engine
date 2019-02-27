@@ -8,6 +8,8 @@ import (
 
 	"github.com/battlesnakeio/engine/controller/pb"
 	"github.com/battlesnakeio/engine/worker"
+	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	promgrpc "github.com/grpc-ecosystem/go-grpc-prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -50,15 +52,18 @@ func randTimeoutInterceptor(ctx context.Context, method string, req, reply inter
 }
 
 var workerCmd = &cobra.Command{
-	Use:   "worker",
-	Short: "runs the engine worker",
+	Use:    "worker",
+	Short:  "runs the engine worker",
+	PreRun: func(c *cobra.Command, args []string) { prometheus() },
 	Run: func(c *cobra.Command, args []string) {
-		var opts []grpc.DialOption
+		interceptors := []grpc.UnaryClientInterceptor{promgrpc.UnaryClientInterceptor}
 		if workerChaos {
 			log.Warn("using chaos mode")
-			opts = append(opts, grpc.WithUnaryInterceptor(randTimeoutInterceptor))
+			interceptors = append(interceptors, randTimeoutInterceptor)
 		}
-		client, err := pb.Dial(controllerAddr, opts...)
+		client, err := pb.Dial(controllerAddr, grpc.WithUnaryInterceptor(
+			grpcmiddleware.ChainUnaryClient(interceptors...),
+		))
 		if err != nil {
 			log.WithError(err).
 				WithField("address", controllerAddr).

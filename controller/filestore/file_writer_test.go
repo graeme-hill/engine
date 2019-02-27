@@ -38,7 +38,6 @@ func basicGame() *pb.Game {
 		Width:        10,
 		Height:       15,
 		SnakeTimeout: 200,
-		TurnTimeout:  100,
 		Mode:         "multiplayer",
 	}
 }

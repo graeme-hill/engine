@@ -35,7 +35,11 @@ func init() {
 			"right",
 		}
 		direction := directions[randGen.Intn(4)]
-		w.Write([]byte(`{"move":"` + direction + `"}`))
+		_, err := w.Write([]byte(`{"move":"` + direction + `"}`))
+		if err != nil {
+			fmt.Println("unable to write bytes")
+			os.Exit(1)
+		}
 	}))
 	snakeURL = tst.URL
 }
@@ -111,7 +115,10 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	proc.Process.Kill()
+	err := proc.Process.Kill()
+	if err != nil {
+		fmt.Printf("error while killing process: %v\n", err)
+	}
 	os.Exit(code)
 }
 

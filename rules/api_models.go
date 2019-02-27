@@ -11,7 +11,9 @@ type MoveResponse struct {
 
 // StartResponse is the format for /start responses
 type StartResponse struct {
-	Color string
+	Color    string
+	HeadType string
+	TailType string
 }
 
 // SnakeRequest the message send for all snake api calls
@@ -64,7 +66,7 @@ func buildSnakeRequest(game *pb.Game, frame *pb.GameFrame, snakeID string) Snake
 			Height: game.Height,
 			Width:  game.Width,
 			Food:   convertPoints(frame.Food),
-			Snakes: convertSnakes(frame.Snakes),
+			Snakes: convertSnakes(frame.AliveSnakes()),
 		},
 		You: convertSnake(you),
 	}

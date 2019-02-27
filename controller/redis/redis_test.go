@@ -252,7 +252,7 @@ var gameCases = []testCase{
 		game: &pb.Game{ID: uuid.NewV4().String()},
 	},
 	{
-		game: &pb.Game{ID: uuid.NewV4().String(), Status: "Test status", Width: 10, Height: 10, SnakeTimeout: 10, TurnTimeout: 10, Mode: "Test"},
+		game: &pb.Game{ID: uuid.NewV4().String(), Status: "Test status", Width: 10, Height: 10, SnakeTimeout: 10, Mode: "Test"},
 		frames: []*pb.GameFrame{
 			{
 				Turn: 0, Food: []*pb.Point{{X: 0, Y: 0}},
@@ -263,10 +263,10 @@ var gameCases = []testCase{
 		},
 	},
 	{
-		game: &pb.Game{ID: uuid.NewV4().String(), Status: "ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷᛖᚻᚹᛦᛚᚳᚢᛗ", Width: 10, Height: 10, SnakeTimeout: 10, TurnTimeout: 10, Mode: "Test"},
+		game: &pb.Game{ID: uuid.NewV4().String(), Status: "ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷᛖᚻᚹᛦᛚᚳᚢᛗ", Width: 10, Height: 10, SnakeTimeout: 10, Mode: "Test"},
 	},
 	{
-		game: &pb.Game{ID: uuid.NewV4().String(), Status: "Test status", Width: 10, Height: 10, SnakeTimeout: 10, TurnTimeout: 10},
+		game: &pb.Game{ID: uuid.NewV4().String(), Status: "Test status", Width: 10, Height: 10, SnakeTimeout: 10},
 	},
 	{
 		game:   &pb.Game{ID: uuid.NewV4().String(), Status: "Test status", Width: 10, Height: 10, Mode: "🐍"},

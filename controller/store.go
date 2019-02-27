@@ -14,7 +14,7 @@ import (
 )
 
 // LockExpiry is the time after which a lock will expire.
-var LockExpiry = 1 * time.Second
+var LockExpiry = 5 * time.Second
 
 var (
 	// ErrNotFound is thrown when a game is not found.
@@ -72,6 +72,12 @@ type inmem struct {
 	frames map[string][]*pb.GameFrame
 	locks  map[string]*lock
 	lock   sync.Mutex
+}
+
+func (in *inmem) Clear() {
+	in.games = map[string]*pb.Game{}
+	in.frames = map[string][]*pb.GameFrame{}
+	in.locks = map[string]*lock{}
 }
 
 func (in *inmem) Lock(ctx context.Context, key, token string) (string, error) {

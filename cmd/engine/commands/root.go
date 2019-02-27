@@ -32,6 +32,7 @@ func Execute() {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(replayCmd)
 	rootCmd.AddCommand(loadTestCmd)
+	rootCmd.AddCommand(devCmd)
 	rootCmd.AddCommand(server.RootCmd)
 
 	if err := rootCmd.Execute(); err != nil {

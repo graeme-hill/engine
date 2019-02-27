@@ -223,7 +223,7 @@ func TestGatherFrames(t *testing.T) {
 		return &pb.ListGameFramesResponse{}
 	}
 	frames := make(chan *pb.GameFrame)
-	go gatherFrames(frames, mc, "fake-id")
+	go gatherFrames(context.Background(), frames, mc, "fake-id")
 	frameCount := 0
 	for range frames {
 		frameCount++
@@ -266,7 +266,8 @@ func TestGetFramesContainsZeroValues(t *testing.T) {
 	require.NoError(t, err)
 
 	var resp map[string]interface{}
-	json.Unmarshal(body, &resp)
+	err = json.Unmarshal(body, &resp)
+	require.NoError(t, err)
 
 	frames := castJSONInterface(resp["Frames"], 0)
 	snake := castJSONInterface(frames["Snakes"], 0)

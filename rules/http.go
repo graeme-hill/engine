@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	nu "net/url"
 	"strings"
@@ -35,10 +36,25 @@ func (c *wrappedHTTPClient) Post(url, contentType string, body io.Reader) (*http
 	return c.Client.Post(url, contentType, body)
 }
 
+// This is copied originally from http.Transport:
+var transport = &http.Transport{
+	Proxy: http.ProxyFromEnvironment,
+	DialContext: (&net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+		DualStack: true,
+	}).DialContext,
+	MaxIdleConns:          200, // Original value of 100 bumped to 200.
+	IdleConnTimeout:       90 * time.Second,
+	TLSHandshakeTimeout:   10 * time.Second,
+	ExpectContinueTimeout: 1 * time.Second,
+}
+
 func getNetClient(duration time.Duration) httpClient {
 	return &wrappedHTTPClient{
 		Client: &http.Client{
-			Timeout: duration,
+			Transport: transport,
+			Timeout:   duration,
 		},
 	}
 }
