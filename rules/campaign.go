@@ -174,6 +174,7 @@ func startNextLevel(f *pb.GameFrame, g *pb.Game, level int) {
 	for _, p := range spawnPoints {
 		spawnAt(p, level, f)
 	}
+	wipeDeadSnakes(f)
 }
 
 func wipeDeadSnakes(f *pb.GameFrame) {
