@@ -21,7 +21,7 @@ var devCmd = &cobra.Command{
 			fs := http.FileServer(http.Dir("board"))
 			mux.Handle("/", fs)
 			log.Info("board available at http://localhost:3009/")
-			if err := http.ListenAndServe(":3009", mux); err != nil {
+			if err := http.ListenAndServe("0.0.0.0:3009", mux); err != nil {
 				fmt.Println("Error while trying to serve board: ", err)
 			}
 		}()
@@ -29,7 +29,7 @@ var devCmd = &cobra.Command{
 		fs := http.FileServer(http.Dir("public"))
 		mux.Handle("/", fs)
 		log.Info("dev form available at http://localhost:3010/")
-		if err := http.ListenAndServe(":3010", mux); err != nil {
+		if err := http.ListenAndServe("0.0.0.0:3010", mux); err != nil {
 			fmt.Println("Error while trying to serve game form: ", err)
 		}
 	},
