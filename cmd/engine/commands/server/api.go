@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	apiListen = "0.0.0.0:3005"
+	apiListen = ":3005"
 )
 
 func init() {

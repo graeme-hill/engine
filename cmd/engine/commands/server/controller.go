@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	controllerListen      = "0.0.0.0:3004"
+	controllerListen      = ":3004"
 	controllerBackend     = "inmem"
 	controllerBackendArgs = ""
 )
