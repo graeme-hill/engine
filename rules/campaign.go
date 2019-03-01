@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -56,10 +57,7 @@ var (
 )
 
 func getDance(level int) []string {
-	if level > len(dances) {
-		return dances[len(dances)-1]
-	}
-	return dances[level-1]
+	return dances[(level-1)%len(dances)]
 }
 
 func getDanceFrame(level int, turn int32) string {
@@ -131,12 +129,11 @@ func allVacantCells(f *pb.GameFrame, g *pb.Game) []*pb.Point {
 func nextID() string {
 	id := currentID
 	currentID++
-	return strconv.Itoa(id)
+	return fmt.Sprintf("~~%d", id)
 }
 
 func getSnakeCount(level int) int {
-	//return int(level / 10)
-	return 1
+	return int(math.Ceil(float64(level) / 5.0))
 }
 
 func makeSnakeName(level int, turn int32) string {
