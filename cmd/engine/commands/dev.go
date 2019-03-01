@@ -16,15 +16,15 @@ var devCmd = &cobra.Command{
 	Version: version.Version,
 	Run: func(c *cobra.Command, args []string) {
 		go server.RootCmd.Run(c, args)
-		go func() {
-			mux := http.NewServeMux()
-			fs := http.FileServer(http.Dir("board"))
-			mux.Handle("/", fs)
-			log.Info("board available at http://localhost:3009/")
-			if err := http.ListenAndServe(":3009", mux); err != nil {
-				fmt.Println("Error while trying to serve board: ", err)
-			}
-		}()
+		// go func() {
+		// 	mux := http.NewServeMux()
+		// 	fs := http.FileServer(http.Dir("board"))
+		// 	mux.Handle("/", fs)
+		// 	log.Info("board available at http://localhost:3009/")
+		// 	if err := http.ListenAndServe(":3009", mux); err != nil {
+		// 		fmt.Println("Error while trying to serve board: ", err)
+		// 	}
+		// }()
 		mux := http.NewServeMux()
 		fs := http.FileServer(http.Dir("public"))
 		mux.Handle("/", fs)
