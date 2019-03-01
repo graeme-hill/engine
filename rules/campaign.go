@@ -10,30 +10,62 @@ import (
 )
 
 var (
-	currentID     = 0
-	emojiSequence = []string{
-		"(•_•)",
-		"( •_•)>⌐■-■",
-		"(⌐■_■)",
-		"(⌐■_■)👍",
-		"(⌐■_■)👍👍",
-		"(⌐■_■)👍👍👍",
-		"(⌐■_■)👍👍👍👍",
-		"(⌐■_■)👍👍👍👍👍",
-		"(⌐■_■)👍👍👍👍👍",
-		"(⌐■_■)👍👍👍👍👍👍",
-		"(⌐■_■)👍👍👍👍👍👍👍",
-		"(⌐■_■)👍👍👍👍👍👍👍👍",
-		"(⌐■_■)👍👍👍👍👍👍👍👍👍",
-		"(⌐■_■)👍👍👍👍👍👍👍👍👍👍",
+	currentID = 0
+	dances    = [][]string{
+		[]string{
+			"(>•_•)>",
+			"^(•_•)^",
+			"<(•_•<)",
+			"^(•_•)^",
+		},
+		[]string{
+			"(^•_•)>⌐■-■",
+			"<(•_•)>⌐■-■",
+			"(^•_•)>⌐■-■",
+			"(>•_•)>⌐■-■",
+		},
+		[]string{
+			" (⌐■_■)>",
+			"^(⌐■_■)^",
+			"<(⌐■_■)",
+			"^(⌐■_■)^",
+		},
+		[]string{
+			" (■_■¬)",
+			" (⌐■_■)👍",
+			" (⌐■_■)👍👍",
+			" (■_■¬)👍👍👍",
+			" (■_■¬)👍👍👍👍",
+			" (⌐■_■)👍👍👍👍👍",
+			" (⌐■_■)👍👍👍👍👍👍",
+			" (■_■¬)👍👍👍👍👍👍👍",
+			" (■_■¬)👍👍👍👍👍👍👍👍",
+			" (⌐■_■)👍👍👍👍👍👍👍👍👍",
+			" (⌐■_■)👍👍👍👍👍👍👍👍👍👍",
+			" (■_■¬)👍👍👍👍👍👍👍👍👍",
+			" (■_■¬)👍👍👍👍👍👍👍👍",
+			" (⌐■_■)👍👍👍👍👍👍👍",
+			" (⌐■_■)👍👍👍👍👍👍",
+			" (■_■¬)👍👍👍👍👍",
+			" (■_■¬)👍👍👍👍",
+			" (⌐■_■)👍👍👍",
+			" (⌐■_■)👍👍",
+			" (■_■¬)👍",
+		},
 	}
 )
 
-func getNameSuffix(level int) string {
-	if level > len(emojiSequence) {
-		return emojiSequence[len(emojiSequence)-1]
+func getDance(level int) []string {
+	if level > len(dances) {
+		return dances[len(dances)-1]
 	}
-	return emojiSequence[level-1]
+	return dances[level-1]
+}
+
+func getDanceFrame(level int, turn int32) string {
+	dance := getDance(level)
+	frame := turn % int32(len(dance))
+	return dance[frame]
 }
 
 func cellIsInVacant2x2(p1 *pb.Point, f *pb.GameFrame, g *pb.Game) bool {
@@ -107,11 +139,14 @@ func getSnakeCount(level int) int {
 	return 1
 }
 
-func makeSnake(pos *pb.Point, level int) *pb.Snake {
-	name := fmt.Sprintf("~~ Level %d ~~ %s", level, getNameSuffix(level))
+func makeSnakeName(level int, turn int32) string {
+	return fmt.Sprintf("~~ Level %d ~~ %s", level, getDanceFrame(level, turn))
+}
+
+func makeSnake(pos *pb.Point, level int, turn int32) *pb.Snake {
 	return &pb.Snake{
 		ID:     nextID(),
-		Name:   name,
+		Name:   makeSnakeName(level, turn),
 		Body:   []*pb.Point{pos, pos, pos},
 		URL:    "http://localhost:5000",
 		Health: 100,
@@ -135,7 +170,7 @@ func getLevel(name string) int {
 }
 
 func spawnAt(pos *pb.Point, level int, f *pb.GameFrame) {
-	snake := makeSnake(pos, level)
+	snake := makeSnake(pos, level, f.Turn)
 	f.Snakes = append(f.Snakes, snake)
 }
 
@@ -217,9 +252,20 @@ func wipeDeadCampaignSnakes(f *pb.GameFrame) {
 	f.Snakes = remaining
 }
 
+func animateName(f *pb.GameFrame) {
+	for _, s := range f.Snakes {
+		if !isHero(s) {
+			level := getLevel(s.Name)
+			s.Name = getDanceFrame(level, f.Turn)
+		}
+	}
+}
+
 func updateCampaign(f *pb.GameFrame, g *pb.Game) {
 	if levelComplete(f) {
 		level := getCurrentLevel(f)
 		startNextLevel(f, g, level+1)
+	} else {
+		animateName(f)
 	}
 }
