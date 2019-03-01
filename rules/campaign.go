@@ -9,7 +9,32 @@ import (
 	"github.com/battlesnakeio/engine/controller/pb"
 )
 
-var currentID = 0
+var (
+	currentID     = 0
+	emojiSequence = []string{
+		"(•_•)",
+		"( •_•)>⌐■-■",
+		"(⌐■_■)",
+		"(⌐■_■)👍",
+		"(⌐■_■)👍👍",
+		"(⌐■_■)👍👍👍",
+		"(⌐■_■)👍👍👍👍",
+		"(⌐■_■)👍👍👍👍👍",
+		"(⌐■_■)👍👍👍👍👍",
+		"(⌐■_■)👍👍👍👍👍👍",
+		"(⌐■_■)👍👍👍👍👍👍👍",
+		"(⌐■_■)👍👍👍👍👍👍👍👍",
+		"(⌐■_■)👍👍👍👍👍👍👍👍👍",
+		"(⌐■_■)👍👍👍👍👍👍👍👍👍👍",
+	}
+)
+
+func getNameSuffix(level int) string {
+	if level > len(emojiSequence) {
+		return emojiSequence[len(emojiSequence)-1]
+	}
+	return emojiSequence[level-1]
+}
 
 func cellIsInVacant2x2(p1 *pb.Point, f *pb.GameFrame, g *pb.Game) bool {
 	p2 := &pb.Point{X: p1.X + 1, Y: p1.Y}
@@ -83,7 +108,7 @@ func getSnakeCount(level int) int {
 }
 
 func makeSnake(pos *pb.Point, level int) *pb.Snake {
-	name := fmt.Sprintf("~~ Level %d ~~", level)
+	name := fmt.Sprintf("~~ Level %d ~~ %s", level, getNameSuffix(level))
 	return &pb.Snake{
 		ID:     nextID(),
 		Name:   name,
