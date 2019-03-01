@@ -133,7 +133,7 @@ func nextID() string {
 }
 
 func getSnakeCount(level int) int {
-	return int(math.Ceil(float64(level) / 5.0))
+	return int(math.Ceil(float64(level+1) / 5.0))
 }
 
 func makeSnakeName(level int, turn int32) string {
