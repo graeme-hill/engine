@@ -56,6 +56,14 @@ var (
 	}
 )
 
+func getStartingHealth(level int) int32 {
+	health := int32(15 + (level * 5))
+	if health > 100 {
+		return 100
+	}
+	return health
+}
+
 func getDance(level int) []string {
 	return dances[(level-1)%len(dances)]
 }
@@ -146,7 +154,7 @@ func makeSnake(pos *pb.Point, level int, turn int32) *pb.Snake {
 		Name:   makeSnakeName(level, turn),
 		Body:   []*pb.Point{pos, pos, pos},
 		URL:    "http://localhost:5000",
-		Health: 100,
+		Health: getStartingHealth(level),
 		Color:  "#ff00bb",
 	}
 }
