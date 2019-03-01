@@ -79,7 +79,7 @@ func nextID() string {
 
 func getSnakeCount(level int) int {
 	//return int(level / 10)
-	return level
+	return 1
 }
 
 func makeSnake(pos *pb.Point, level int) *pb.Snake {
