@@ -179,15 +179,17 @@ func startNextLevel(f *pb.GameFrame, g *pb.Game, level int) {
 	for _, p := range spawnPoints {
 		spawnAt(p, level, f)
 	}
-	wipeDeadSnakes(f)
+	wipeDeadCampaignSnakes(f)
 }
 
-func wipeDeadSnakes(f *pb.GameFrame) {
-	alive := []*pb.Snake{}
-	for _, s := range f.AliveSnakes() {
-		alive = append(alive, s)
+func wipeDeadCampaignSnakes(f *pb.GameFrame) {
+	remaining := []*pb.Snake{}
+	for _, s := range f.Snakes {
+		if s.Death == nil || isHero(s) {
+			remaining = append(remaining, s)
+		}
 	}
-	f.Snakes = alive
+	f.Snakes = remaining
 }
 
 func updateCampaign(f *pb.GameFrame, g *pb.Game) {
