@@ -165,7 +165,12 @@ func isHero(s *pb.Snake) bool {
 
 func levelComplete(f *pb.GameFrame) bool {
 	alive := f.AliveSnakes()
-	return len(alive) == 1 && isHero(alive[0])
+	for _, snake := range alive {
+		if !isHero(snake) {
+			return false
+		}
+	}
+	return true
 }
 
 func startNextLevel(f *pb.GameFrame, g *pb.Game, level int) {
