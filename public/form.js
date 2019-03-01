@@ -83,7 +83,7 @@ $(() => {
           .then(_ => {
             $("#board").attr(
               "src",
-              `http://localhost:3000?engine=http://localhost:3005&game=${id}`
+              `https://board.battlesnake.io?engine=http://localhost:3005&game=${id}`
             );
           })
           .catch(err => $("#errors").text(err));
