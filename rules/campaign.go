@@ -256,7 +256,7 @@ func animateName(f *pb.GameFrame) {
 	for _, s := range f.Snakes {
 		if !isHero(s) {
 			level := getLevel(s.Name)
-			s.Name = getDanceFrame(level, f.Turn)
+			s.Name = makeSnakeName(level, f.Turn)
 		}
 	}
 }
