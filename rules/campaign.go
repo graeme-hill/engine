@@ -218,9 +218,15 @@ func findSpawnPoints(f *pb.GameFrame, g *pb.Game, n int) []*pb.Point {
 }
 
 func randomPoints(points []*pb.Point, n int) []*pb.Point {
+	if len(points) == 0 {
+		return []*pb.Point{}
+	}
 	rand.Shuffle(len(points), func(i, j int) {
 		points[i], points[j] = points[j], points[i]
 	})
+	if len(points) < n {
+		return points
+	}
 	return points[0:n]
 }
 
@@ -266,8 +272,30 @@ func animateName(f *pb.GameFrame) {
 	}
 }
 
+func gameOver(f *pb.GameFrame) bool {
+	for _, s := range f.AliveSnakes() {
+		if isHero(s) {
+			return false
+		}
+	}
+	return true
+}
+
+func killCampaignSnakes(f *pb.GameFrame) {
+	for _, s := range f.AliveSnakes() {
+		if !isHero(s) {
+			s.Death = &pb.Death{
+				Cause: "game over",
+				Turn:  f.Turn,
+			}
+		}
+	}
+}
+
 func updateCampaign(f *pb.GameFrame, g *pb.Game) {
-	if levelComplete(f) {
+	if gameOver(f) {
+		killCampaignSnakes(f)
+	} else if levelComplete(f) {
 		level := getCurrentLevel(f)
 		startNextLevel(f, g, level+1)
 	} else {
